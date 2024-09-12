@@ -3,8 +3,12 @@
 import express from 'express';
 import pino from 'pino-http';
 import cors from 'cors';
+import router from './routers/index.js';
+
 
 import { env } from './utils/env.js';
+import { errorHandler } from './services/middlewares/errorHandler.js';
+import { notFoundHandler } from './services/middlewares/notFoundHandler.js';
 
 // Отримання значення порту з перевіркою
 const portValue = env('PORT', '3000');
@@ -15,9 +19,16 @@ if (isNaN(PORT) || PORT <= 0 || PORT >= 65536) {
 }
 
 export const startServer = () => {
+
   const app = express();
 
-  app.use(express.json());
+  app.use(router);
+  app.use(
+    express.json({
+      type: ['application/json', 'application/vnd.api+json'],
+      limit: '100kb',
+    }),
+  );
   app.use(cors());
 
   app.use(
@@ -28,24 +39,10 @@ export const startServer = () => {
     }),
   );
 
-  app.get('/', (req, res) => {
-    res.json({
-      message: 'Hello World!',
-    });
-  });
 
-  app.use('*', (req, res, next) => {
-    res.status(404).json({
-      message: 'Not found',
-    });
-  });
+  app.use(notFoundHandler);
 
-  app.use((err, req, res, next) => {
-    res.status(500).json({
-      message: 'Something went wrong',
-      error: err.message,
-    });
-  });
+  app.use(errorHandler);
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
