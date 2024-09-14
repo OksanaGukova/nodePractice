@@ -9,6 +9,7 @@ import router from './routers/index.js';
 import { env } from './utils/env.js';
 import { errorHandler } from './services/middlewares/errorHandler.js';
 import { notFoundHandler } from './services/middlewares/notFoundHandler.js';
+import cookieParser from 'cookie-parser';
 
 // Отримання значення порту з перевіркою
 const portValue = env('PORT', '3000');
@@ -43,6 +44,7 @@ export const startServer = () => {
   app.use(notFoundHandler);
 
   app.use(errorHandler);
+  app.use(cookieParser());
 
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

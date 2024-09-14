@@ -9,4 +9,5 @@ export const createStudentSchema = Joi.object({
   gender: Joi.string().valid('male', 'female', 'other').required(),
   avgMark: Joi.number().min(2).max(12).required(),
   onDuty: Joi.boolean(),
+  parentId: Joi.string().required(),
 });
