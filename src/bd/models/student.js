@@ -27,11 +27,13 @@ const studentsSchema = new Schema(
       default: false,
     },
      parentId: { type: Schema.Types.ObjectId, ref: 'users' },
+     photo: { type: String },
   },
 
   {
     timestamps: true,
     versionKey: false,
   },
+
 );
 export const StudentsCollection = model('students', studentsSchema);

@@ -10,6 +10,7 @@ import { env } from './utils/env.js';
 import { errorHandler } from './services/middlewares/errorHandler.js';
 import { notFoundHandler } from './services/middlewares/notFoundHandler.js';
 import cookieParser from 'cookie-parser';
+import { UPLOAD_DIR } from './constants/index.js';
 
 // Отримання значення порту з перевіркою
 const portValue = env('PORT', '3000');
@@ -30,6 +31,7 @@ export const startServer = () => {
       limit: '100kb',
     }),
   );
+  app.use('/uploads', express.static(UPLOAD_DIR));
   app.use(cors());
 
   app.use(
