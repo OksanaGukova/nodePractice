@@ -1,13 +1,23 @@
 // src/services/auth.js
 import bcrypt from 'bcrypt';
-import { UsersCollection } from "../bd/models/user.js";
+import { UsersCollection } from '../bd/models/user.js';
 import createHttpError from 'http-errors';
 import { SessionsCollection } from '../bd/models/session.js';
-import { FIFTEEN_MINUTES, ONE_DAY } from '../constants/index.js';
+import {
+  FIFTEEN_MINUTES,
+  ONE_DAY,
+  SMTP,
+  TEMPLATES_DIR,
+} from '../constants/index.js';
 import { randomBytes } from 'crypto';
 import handlebars from 'handlebars';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import {
+  getFullNameFromGoogleTokenPayload,
+  validateCode,
+} from '../utils/googleOAuth2.js';
+import { env } from '../utils/env.js';
 
 export const registerUser = async (payload) => {
   const user = await UsersCollection.findOne({ email: payload.email });
@@ -20,7 +30,6 @@ export const registerUser = async (payload) => {
     password: encryptedPassword,
   });
 };
-
 
 export const loginUser = async (payload) => {
   const user = await UsersCollection.findOne({ email: payload.email });
@@ -47,11 +56,9 @@ export const loginUser = async (payload) => {
   });
 };
 
-
 export const logoutUser = async (sessionId) => {
   await SessionsCollection.deleteOne({ _id: sessionId });
 };
-
 
 const createSession = () => {
   const accessToken = randomBytes(30).toString('base64');
@@ -92,7 +99,6 @@ export const refreshUsersSession = async ({ sessionId, refreshToken }) => {
   });
 };
 
-
 export const requestResetToken = async (email) => {
   const user = await UsersCollection.findOne({ email });
   if (!user) {
@@ -132,7 +138,6 @@ export const requestResetToken = async (email) => {
   });
 };
 
-
 export const resetPassword = async (payload) => {
   let entries;
 
@@ -158,4 +163,28 @@ export const resetPassword = async (payload) => {
     { _id: user._id },
     { password: encryptedPassword },
   );
+};
+
+export const loginOrSignupWithGoogle = async (code) => {
+  const loginTicket = await validateCode(code);
+  const payload = loginTicket.getPayload();
+  if (!payload) throw createHttpError(401);
+
+  let user = await UsersCollection.findOne({ email: payload.email });
+  if (!user) {
+    const password = await bcrypt.hash(randomBytes(10), 10);
+    user = await UsersCollection.create({
+      email: payload.email,
+      name: getFullNameFromGoogleTokenPayload(payload),
+      password,
+      role: 'parent',
+    });
+  }
+
+  const newSession = createSession();
+
+  return await SessionsCollection.create({
+    userId: user._id,
+    ...newSession,
+  });
 };
